@@ -1,0 +1,467 @@
+#include <iostream>
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+
+using namespace std;
+
+// Initializing Dimensions.
+// resolutionX and resolutionY determine the rendering resolution.
+// Don't edit unless required. Use functions on lines 43, 44, 45 for resizing the game window.
+
+
+
+const int resolutionX = 960;
+const int resolutionY = 960;
+const int boxPixelsX = 32;
+const int boxPixelsY = 32;
+const int gameRows = resolutionX / boxPixelsX; // Total rows on grid
+const int gameColumns = resolutionY / boxPixelsY; // Total columns on grid
+const int max_Rows_player=5;
+
+// Initializing GameGrid.
+int gameGrid[gameRows][gameColumns] = {};
+
+int score=0;
+
+
+const int x = 0;
+const int y = 1;
+const int exists = 2;
+
+/*const int number_Mushrooms = 22;
+const int mushroom_size = 32;
+int G_Mushroom[number_Mushrooms][3];
+*/
+
+const int SizeofCentipede = 32;
+const int LengthofCentipede= 11; // Move the declaration here
+int G_centipede[LengthofCentipede][3];
+
+bool Keys(const sf::Keyboard::Key& key);
+bool SpaceKey(sf::RenderWindow& window);
+
+bool bullet_touch_Mushroom(float bullet[], int mushroom[], int mushroom_size);
+bool player_touch_Centipede(float player[], int centipede[][3], int length);
+
+void Start_Mushrooms(int number_Mushrooms, int G_Mushroom[][3]);
+void Start_Centipede();
+
+void drawPlayer(sf::RenderWindow& window, float player[], sf::Sprite& playerSprite);
+void drawBullet(sf::RenderWindow& window, float bullet[], sf::Sprite& bulletSprite);
+void drawMushrooms(sf::RenderWindow& window, sf::Sprite& mushroomSprite, int number_Mushrooms, int G_Mushroom[][3]);
+void drawCentipede(sf::RenderWindow& window, sf::Sprite& SpriteofCentipede);
+
+void BulletMushroomTouch(float bullet[], int number_Mushroom, int G_Mushroom[][3], int mushroom_size);
+
+void moveBullet(float bullet[], sf::Clock& bulletClock);
+void moveCentipede(sf::Clock& centipedeClock, int number_Mushroom, int G_Mushroom[][3], int mushroom_size);
+
+sf::Music kill;
+sf::Music death;
+sf::Music fire;
+
+
+int main(){
+
+
+
+        srand(time(0));
+
+// Declaring RenderWindow.
+sf::RenderWindow window(sf::VideoMode(resolutionX, resolutionY), "Centipede", sf::Style::Close | sf::Style::Titlebar);
+
+// Used to resize your window if it's too big or too small. Use according to your needs.
+window.setSize(sf::Vector2u(640, 640)); // Recommended for 1366x768 (768p) displays.
+
+// Used to position your window on every launch. Use according to your needs.
+window.setPosition(sf::Vector2i(100, 0));
+
+// Initializing Background Music.
+sf::Music bgMusic;
+bgMusic.openFromFile("Music/field_of_hopes.ogg");
+bgMusic.play();
+bgMusic.setVolume(50);
+
+kill.openFromFile("Sound Effects/kill.wav");
+kill.setVolume(50);
+
+death.openFromFile("Sound Effects/death.wav");
+death.setVolume(50);
+
+fire.openFromFile("Sound Effects/fire1.wav");
+fire.setVolume(45);
+
+sf::Font font;
+font.loadFromFile("Font/Arial.ttf"); // Load a font
+
+sf::Text scoreText;
+scoreText.setFont(font);
+scoreText.setCharacterSize(24);
+scoreText.setFillColor(sf::Color::White);
+scoreText.setPosition(resolutionX - 120, 20); 
+// Position the score text in the top-right corner
+
+const int number_Mushrooms = 22;
+const int mushroom_size = 32;
+int G_Mushroom[number_Mushrooms][3];
+
+
+
+// Initializing Background.
+sf::Texture backgroundTexture;
+sf::Sprite backgroundSprite;
+backgroundTexture.loadFromFile("Textures/background.png");
+backgroundSprite.setTexture(backgroundTexture);
+backgroundSprite.setColor(sf::Color(255, 255, 255, 255 * 0.20)); // Reduces Opacity to 25%
+
+// Initializing Player and Player Sprites.
+float player[2] = {};
+player[x] = (gameColumns / 2) * boxPixelsX;
+player[y] = (gameColumns * 3 / 4) * boxPixelsY;
+sf::Texture playerTexture;
+sf::Sprite playerSprite;
+playerTexture.loadFromFile("Textures/player.png");
+playerSprite.setTexture(playerTexture);
+playerSprite.setTextureRect(sf::IntRect(0, 0, boxPixelsX, boxPixelsY));
+
+// Initializing Bullet and Bullet Sprites.
+float bullet[3] = {};
+bullet[x] = player[x];
+bullet[y] = player[y] - boxPixelsY;
+bullet[exists] = true;
+sf::Clock bulletClock;
+sf::Texture bulletTexture;
+sf::Sprite bulletSprite;
+bulletTexture.loadFromFile("Textures/bullet.png");
+bulletSprite.setTexture(bulletTexture);
+bulletSprite.setTextureRect(sf::IntRect(0, 0, boxPixelsX, boxPixelsY));
+
+// Initializing  Mushrooms and Mushroom Sprites
+sf::Texture mushroom_Texture;
+mushroom_Texture.loadFromFile("Textures/mushroom.png");
+sf::Sprite mushroom_Sprite;
+mushroom_Sprite.setTexture(mushroom_Texture);
+mushroom_Sprite.setTextureRect(sf::IntRect (0, 0,mushroom_size, mushroom_size));
+
+// Initializing  Centipede and Centipede Sprites
+sf::Texture TextureofCentipede;
+        TextureofCentipede.loadFromFile("Textures/c_body_left_walk.png");
+        sf::Sprite SpriteofCentipede;
+        sf::Clock centipedeClock;
+        SpriteofCentipede.setTexture(TextureofCentipede);
+        SpriteofCentipede.setTextureRect(sf::IntRect(0, 0, SizeofCentipede, SizeofCentipede));
+ 
+       
+        int a=0;
+        a=rand()%10;
+
+Start_Mushrooms(number_Mushrooms, G_Mushroom);
+Start_Centipede();
+int currentLevel = 1;
+
+       
+while(window.isOpen()){
+
+
+
+  if(SpaceKey(window) && !bullet[exists]){
+    bullet[x]=player[x];
+    bullet[y]=player[y] - boxPixelsY;
+    bullet[exists] = true;
+    }
+   
+    
+
+
+// Change the movement logic with different variable names
+  if (Keys(sf::Keyboard::Left) && player[x] > 1) {
+    player[x]=player[x]-1;
+  }
+  if (Keys(sf::Keyboard::Right) && player[x] < resolutionX - boxPixelsX) {
+    player[x]=player[x]+1;
+  }
+  if (Keys(sf::Keyboard::Up) && player[y] > 1) {
+    if (player[y] > (gameRows - max_Rows_player) * boxPixelsY) {
+        player[y]=player[y]-1;
+        }
+      }
+  if (Keys(sf::Keyboard::Down) && player[y] < resolutionY - boxPixelsY) {
+    player[y]=player[y]+1;
+  }
+
+    scoreText.setString("Score: " + std::to_string(score));
+     
+   
+
+           
+window.draw(backgroundSprite);
+drawPlayer(window, player, playerSprite);
+if (bullet[exists]){
+
+moveBullet(bullet, bulletClock);
+drawBullet(window, bullet, bulletSprite);
+}
+
+drawMushrooms(window, mushroom_Sprite, number_Mushrooms, G_Mushroom);
+drawCentipede(window, SpriteofCentipede);
+BulletMushroomTouch(bullet, number_Mushrooms, G_Mushroom, mushroom_size);
+    moveCentipede(centipedeClock, number_Mushrooms, G_Mushroom, mushroom_size);
+   
+       window.draw(scoreText);
+       
+       
+       if (player_touch_Centipede(player, G_centipede, LengthofCentipede)) {
+       death.play();
+            sf::sleep(sf::seconds(2)); // Player dies upon collision
+             // Play death sound effect or trigger death animation
+        }
+     
+   
+   
+   
+
+sf::Event e;
+while (window.pollEvent(e)){
+if (e.type == sf::Event::Closed){
+return 0;
+}
+}
+window.display();
+window.clear();
+}
+return 0;
+
+}
+
+
+
+
+
+bool Keys(const sf::Keyboard::Key& key){
+    return sf::Keyboard::isKeyPressed(key);
+}
+bool SpaceKey(sf::RenderWindow& window){
+
+    return sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
+}
+bool bullet_touch_Mushroom(float bullet[], int mushroom[], int mushroom_size) {
+    float bulletX = bullet[0];  // Access the x-coordinate of the bullet
+    float bulletY = bullet[1];  // Access the y-coordinate of the bullet
+
+    return (bulletX < mushroom[x] + mushroom_size &&
+            bulletX + boxPixelsX > mushroom[x] &&
+            bulletY < mushroom[y] + mushroom_size &&
+            bulletY + boxPixelsY > mushroom[y]);
+}
+bool player_touch_Centipede(float player[], int centipede[][3], int length) {
+    float playerLeft = player[x];
+    float playerRight = player[x] + boxPixelsX;
+    float playerTop = player[y];
+    float playerBottom = player[y] + boxPixelsY;
+
+    for (int i = 0; i < length; ++i) {
+        if (centipede[i][exists]) {
+            float centipedeLeft = centipede[i][x];
+            float centipedeRight = centipedeLeft + SizeofCentipede;
+            float centipedeTop = centipede[i][y];
+            float centipedeBottom = centipedeTop + SizeofCentipede;
+
+            if (playerRight > centipedeLeft && playerLeft < centipedeRight &&
+                playerBottom > centipedeTop && playerTop < centipedeBottom) {
+                return 1; // Collision detected
+            }
+        }
+    }
+    return 0; // No collision detected
+}
+
+
+
+
+
+
+
+void Start_Mushrooms(int number_Mushrooms, int G_Mushroom[][3]){
+    int i = 0;
+    while ( i < number_Mushrooms){
+        // Ensure that the randomly generated y-coordinate is within the top 6 rows
+        G_Mushroom[i][x] = rand() % gameColumns * boxPixelsX;
+        G_Mushroom[i][y] = rand() % (gameRows - max_Rows_player) * boxPixelsY;
+        G_Mushroom[i][exists] = 1;
+        i++;
+    }
+   
+}
+
+void Start_Centipede() {
+    int startX = rand() % (gameColumns - LengthofCentipede) * boxPixelsX; // Random X within playable area
+    int startY = rand() % (gameRows - max_Rows_player) * boxPixelsY; // Random Y within playable area
+
+    for (int i = 0; i < LengthofCentipede; ++i) {
+        G_centipede[i][x] = startX + i * boxPixelsX; // Start from startX, adjusting for each segment
+        G_centipede[i][y] = startY;
+        G_centipede[i][exists] = 1;
+    }
+}
+
+
+
+
+void drawPlayer(sf::RenderWindow& window, float player[], sf::Sprite& playerSprite){
+playerSprite.setPosition(player[x], player[y]);
+window.draw(playerSprite);
+}
+void drawBullet(sf::RenderWindow& window, float bullet[], sf::Sprite& bulletSprite){
+bulletSprite.setPosition(bullet[x], bullet[y]);
+window.draw(bulletSprite);
+}
+void drawMushrooms(sf::RenderWindow& window, sf::Sprite& mushroom_Sprite, int number_Mushrooms, int G_Mushroom[][3]){
+    int i = 0;
+    while(i<number_Mushrooms) {
+        if(G_Mushroom[i][exists]) {
+            mushroom_Sprite.setPosition(G_Mushroom[i][x], G_Mushroom[i][y]);
+            window.draw(mushroom_Sprite);
+        }
+        i++;
+    }
+}
+
+void drawCentipede(sf::RenderWindow& window, sf::Sprite& SpriteofCentipede) {
+    
+    // Draw the rest of the body segments starting from the second element
+    for (int i = 1; i < LengthofCentipede; ++i) {
+        if (G_centipede[i][exists]) {
+            SpriteofCentipede.setPosition(G_centipede[i][x], G_centipede[i][y]);
+            window.draw(SpriteofCentipede);
+        }
+    }
+}
+
+
+
+ // Maximum hits required to destroy a mushroom
+void BulletMushroomTouch(float bullet[], int number_Mushrooms, int G_Mushroom[][3], int mushroom_size) {
+    for (int i = 0; i < number_Mushrooms; ++i) {
+        if (G_Mushroom[i][exists] && bullet_touch_Mushroom(bullet, G_Mushroom[i], mushroom_size)) {
+            bullet[exists] = 0;
+            G_Mushroom[i][exists] = 0;
+            kill.play();
+            score=score+1; // Update the score by adding 5 points
+        }
+    }
+    int i=0;
+    while(i < LengthofCentipede){
+        if (G_centipede[i][exists] && bullet[exists] &&
+            bullet[y] < G_centipede[i][y] + SizeofCentipede &&
+            bullet[y] + boxPixelsY > G_centipede[i][y] &&
+            bullet[x] < G_centipede[i][x] + SizeofCentipede &&
+            bullet[x] + boxPixelsX > G_centipede[i][x]) {
+            
+            score=score+10;
+            fire.play();
+            bullet[exists] = 0;
+            G_centipede[i][exists] = 0;
+            // You can add more actions/effects here upon hitting the centipede segment
+
+            // Exiting the loop upon the first hit
+            break;
+        }
+        i++;
+    }
+    
+}
+
+
+
+
+void moveBullet(float bullet[], sf::Clock& bulletClock){
+if (bulletClock.getElapsedTime().asMilliseconds() < 5)
+return;
+bulletClock.restart();
+bullet[y] -= 10;
+if (bullet[y] < -32)
+bullet[exists] = 0;
+}
+
+
+
+void moveCentipede(sf::Clock& centipedeClock, int number_Mushrooms, int G_Mushroom[][3], int mushroom_size) {
+    static bool moveLeft = 1;
+    const int centipedeMoveInterval = 1; // Adjust this value to control centipede speed (in milliseconds)
+
+    if (centipedeClock.getElapsedTime().asMilliseconds() > centipedeMoveInterval) {
+        bool collisionDetected = 0; // Flag to track collision with mushrooms
+
+        // Check for collision with mushrooms
+        for (int i = 0; i < LengthofCentipede; ++i) {
+            if (G_centipede[i][exists]) {
+                int nextX = G_centipede[i][x] + (moveLeft ? -1 : 1) * boxPixelsX;
+                int nextY = G_centipede[i][y];
+
+                // Check if the next position collides with any mushroom
+                for (int j = 0; j < number_Mushrooms; ++j) {
+                    if (G_Mushroom[j][exists] &&
+                        nextX < G_Mushroom[j][x] + mushroom_size &&
+                        nextX + SizeofCentipede > G_Mushroom[j][x] &&
+                        nextY < G_Mushroom[j][y] + mushroom_size &&
+                        nextY + SizeofCentipede > G_Mushroom[j][y]) {
+
+                        collisionDetected = 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Move the centipede and handle collision
+        for (int i = 0; i < LengthofCentipede; ++i) {
+            if (G_centipede[i][exists]) {
+                if (moveLeft) {
+                    G_centipede[i][x]=G_centipede[i][x]-1;
+                } else {
+                    G_centipede[i][x]=G_centipede[i][x]+1;
+                }
+            }
+        }
+
+        // Handle collision by changing direction and moving down
+        if (collisionDetected){
+            for (int i = 0; i < LengthofCentipede; ++i) {
+                G_centipede[i][y]=G_centipede[i][y]+boxPixelsY;
+            }
+            moveLeft = !moveLeft; // Change direction
+        }
+
+        // Check if the centipede is about to move out of the grid
+        if (moveLeft){
+            if (G_centipede[0][x] < -360) {
+                // Move the entire centipede down
+                for (int i = 0; i < LengthofCentipede; ++i) {
+                    if (G_centipede[i][exists]) {
+                        G_centipede[i][y]=G_centipede[i][y]+boxPixelsY;
+                    }
+                }
+
+                // Change direction
+                moveLeft = !moveLeft;
+            }
+        } else if (G_centipede[0][x]>960) {
+            if (G_centipede[LengthofCentipede - 1][x] >= resolutionX) {
+                // Move the entire centipede down
+                for (int i = 0; i < LengthofCentipede; ++i) {
+                    if (G_centipede[i][exists]) {
+                        G_centipede[i][y]=G_centipede[i][y]+boxPixelsY;
+                    }
+                }
+
+                // Change direction
+                moveLeft = !moveLeft;
+            }
+        }
+
+        centipedeClock.restart();
+    }
+}
+
+
+
