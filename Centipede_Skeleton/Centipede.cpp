@@ -1,10 +1,5 @@
-/*=======================
 
-Name: Abdul Saboor
-Roll No: 23I-3039
-Project: Programming Fundamentals
 
-=========================*/
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
